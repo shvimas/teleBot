@@ -6,12 +6,23 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"socks5"
 	"strings"
+	"golang.org/x/net/proxy"
 )
 
 type RequestHandler struct {
-	Token string
+	Token     string
+	UseProxy  bool
+	ProxyAddr string
+	Auth      *proxy.Auth
+}
+
+func NewProxyRequestHandler(token, proxyAddr, user, password string) RequestHandler {
+	auth := &proxy.Auth{User: user, Password: password}
+	if user == "" && password == "" {
+		auth = nil
+	}
+	return RequestHandler{Token: token, UseProxy: true, ProxyAddr: proxyAddr, Auth: auth}
 }
 
 var TelegramBaseURL = "https://api.telegram.org"
@@ -41,7 +52,7 @@ func (handler RequestHandler) Call(typ string, method string, params map[string]
 	if err != nil {
 		return err
 	}
-	resp, err := socks5.SendRequest(req)
+	resp, err := SendSOCKS5Request(req, handler.ProxyAddr, handler.Auth, nil)
 	if err != nil {
 		return err
 	}
